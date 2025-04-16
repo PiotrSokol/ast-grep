@@ -1,11 +1,11 @@
-use ast_grep_core::{matcher::KindMatcher, AstGrep, NodeMatch, Pattern, Position};
-use napi::bindgen_prelude::*;
-use napi_derive::napi;
-pub use lsp_types::{Position as LSPPosition, Range as LSPRange, TextDocumentContentChangeEvent, DidChangeTextDocumentParams, VersionedTextDocumentIdentifier};
-
 use super::NapiConfig;
 use crate::doc::{JsDoc, Wrapper};
 use ast_grep_core::source::Content;
+use ast_grep_core::{matcher::KindMatcher, AstGrep, NodeMatch, Pattern, Position};
+use lsp_types::{Position as lspPoint, Range as lspRange};
+use napi::bindgen_prelude::*;
+use napi_derive::napi;
+use tree_sitter;
 
 #[napi(object)]
 pub struct Edit {
@@ -414,8 +414,8 @@ impl SgNode {
 /// Represents the parsed tree of code.
 #[napi]
 pub struct SgRoot {
-    pub(super) ast_grep: AstGrep<JsDoc>,
-    pub(super) file_name: String,
+  pub(super) ast_grep: AstGrep<JsDoc>,
+  pub(super) file_name: String,
 }
 
 #[napi]
@@ -424,6 +424,40 @@ impl SgRoot {
   #[napi]
   pub fn root(&self, root_ref: Reference<SgRoot>, env: Env) -> Result<SgNode> {
     let inner = root_ref.share_with(env, |root| Ok(root.ast_grep.root().into()))?;
+    Ok(SgNode { inner })
+  }
+  #[napi]
+  pub fn zoot(
+    &self,
+    root_ref: Reference<SgRoot>,
+    env: Env,
+    lsp_range: Reference<lspRange>,
+  ) -> Result<SgNode> {
+    let inner = root_ref.share_with(env, |root| {
+      let _bad = root
+        .ast_grep
+        .root()
+        .dfs()
+        .find_map(|n| {
+          if (lsp_range.start.line) < (n.start_pos().ts_point().row())
+            || (lsp_range.end.line) > (n.end_pos().ts_point().row())
+          {
+            return None;
+          } else {
+            if (lsp_range.start.character) < (n.start_pos().ts_point().column())
+              || (lsp_range.end.character) > (n.end_pos().ts_point().column())
+            {
+              return None;
+            }
+            Some(n)
+          }
+        })
+        .unwrap()
+        .into();
+      // let node_match = root.ast_grep.root().into();
+      // Ok(node_match)
+      Ok(_bad)
+    })?;
     Ok(SgNode { inner })
   }
   /// Returns the path of the file if it is discovered by ast-grep's `findInFiles`.

@@ -42,8 +42,8 @@
   },
   "scripts": {
     "artifacts": "napi artifacts",
-    "build": "napi build --no-const-enum --dts ignore.d.ts --platform --release",
-    "build:debug": "napi build --no-const-enum --dts ignore.d.ts --platform",
+    "build": "napi build --no-const-enum --platform --release",
+    "build:debug": "napi build --no-const-enum --platform",
     "prepublishOnly": "napi prepublish -t npm --skip-gh-release",
     "pretest": "ts-node scripts/generateTypes.ts --test-only",
     "test": "tsc --noEmit && ava",
