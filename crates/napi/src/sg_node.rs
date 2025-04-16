@@ -1,6 +1,7 @@
 use ast_grep_core::{matcher::KindMatcher, AstGrep, NodeMatch, Pattern, Position};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
+pub use lsp_types::{Position as LSPPosition, Range as LSPRange, TextDocumentContentChangeEvent, DidChangeTextDocumentParams, VersionedTextDocumentIdentifier};
 
 use super::NapiConfig;
 use crate::doc::{JsDoc, Wrapper};
@@ -412,20 +413,23 @@ impl SgNode {
 
 /// Represents the parsed tree of code.
 #[napi]
-pub struct SgRoot(pub(super) AstGrep<JsDoc>, pub(super) String);
+pub struct SgRoot {
+    pub(super) ast_grep: AstGrep<JsDoc>,
+    pub(super) file_name: String,
+}
 
 #[napi]
 impl SgRoot {
   /// Returns the root SgNode of the ast-grep instance.
   #[napi]
   pub fn root(&self, root_ref: Reference<SgRoot>, env: Env) -> Result<SgNode> {
-    let inner = root_ref.share_with(env, |root| Ok(root.0.root().into()))?;
+    let inner = root_ref.share_with(env, |root| Ok(root.ast_grep.root().into()))?;
     Ok(SgNode { inner })
   }
   /// Returns the path of the file if it is discovered by ast-grep's `findInFiles`.
   /// Returns `"anonymous"` if the instance is created by `lang.parse(source)`.
   #[napi]
   pub fn filename(&self) -> Result<String> {
-    Ok(self.1.clone())
+    Ok(self.file_name.clone())
   }
 }

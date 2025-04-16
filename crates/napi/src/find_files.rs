@@ -26,7 +26,8 @@ impl Task for ParseAsync {
   fn compute(&mut self) -> Result<Self::Output> {
     let src = std::mem::take(&mut self.src);
     let doc = JsDoc::new(src, self.lang);
-    Ok(SgRoot(AstGrep::doc(doc), "anonymous".into()))
+    Ok(SgRoot { ast_grep: AstGrep::doc(doc), file_name: "anonymous".into() })
+    // Ok(SgRoot(AstGrep::doc(doc), "anonymous".into()))
   }
   fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
     Ok(output)
@@ -123,7 +124,8 @@ fn call_sg_root(
     return Ok(false);
   }
   let (root, path) = get_root(entry, lang_option)?;
-  let sg = SgRoot(root, path);
+  // let sg = SgRoot(root, path);
+  let sg = SgRoot { ast_grep: root, file_name: path };
   tsfn.call(Ok(sg), ThreadsafeFunctionCallMode::Blocking);
   Ok(true)
 }
@@ -188,14 +190,14 @@ pub fn find_in_files_impl(
 // TODO: optimize
 fn from_pinned_data(pinned: PinnedNodes, env: napi::Env) -> Result<Vec<Vec<SgNode>>> {
   let (root, nodes) = pinned.0.into_raw();
-  let sg_root = SgRoot(AstGrep { inner: root }, pinned.1);
+  let sg_root = SgRoot { ast_grep: AstGrep { inner: root }, file_name: pinned.1.into() };
   let reference = SgRoot::into_reference(sg_root, env)?;
   let mut v = vec![];
   for mut node in nodes {
     let root_ref = reference.clone(env)?;
     let sg_node = SgNode {
       inner: root_ref.share_with(env, |root| {
-        let r = &root.0.inner;
+        let r = &root.ast_grep.inner;
         node.visit_nodes(|n| unsafe { r.readopt(n) });
         Ok(node)
       })?,

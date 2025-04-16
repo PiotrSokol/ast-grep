@@ -68,7 +68,8 @@ impl_lang_mod!(css, Css);
 #[napi]
 pub fn parse(lang: String, src: String) -> Result<SgRoot> {
   let doc = JsDoc::new(src, lang.parse()?);
-  Ok(SgRoot(AstGrep::doc(doc), "anonymous".into()))
+  Ok(SgRoot { ast_grep: AstGrep::doc(doc), file_name: "anonymous".into() })
+  // Ok(SgRoot(AstGrep::doc(doc), "anonymous".into()))
 }
 
 /// Parse a string to an ast-grep instance asynchronously in threads.
